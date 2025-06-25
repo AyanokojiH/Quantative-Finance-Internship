@@ -1,0 +1,28 @@
+factor_name: 5D-Reverse
+
+path:
+  load_data:
+    basic_data: "./dataset/intern_data_new/basic_data"
+    risk_data: "./dataset/intern_data_new/risk_data"
+    output_data: "./dataset/processed_data"
+  Factor_Standardize:
+    input_path: "./dataset/processed_data/all_stocks_processed.parquet"
+    output_path: "./dataset/processed_data/standardized.parquet"
+  Factor_Neutralization:
+    input_path: "./dataset/processed_data/standardized.parquet"
+    output_path: "./dataset/processed_data/neutralization.parquet"
+  Factor_Return:
+    read_path: "./dataset/processed_data/neutralization.parquet"
+    backtest: 0
+  Factor_IC:
+    use_factor: 5D_RETURN.rank_std
+    
+
+
+parameters:
+  return_short: 1
+  return_med: 5
+  return_long: 20
+  trade_threshold: 0.00001
+  standardized_n: 3
+  

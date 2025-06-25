@@ -9,11 +9,14 @@ import pandas as pd
 import numpy as np
 import statsmodels.api as sm
 from pathlib import Path
+import warnings
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 class FactorNeutralizer:
-    def __init__(self):
-        self.input_path = Path("../dataset/processed_data/standardized.parquet")
-        self.output_path = Path("../dataset/processed_data/neutralization.parquet")
+    def __init__(self,input_path,output_path):
+        self.input_path = Path(input_path)
+        self.output_path = Path(output_path)
         self.data = None
         self.factor_columns = [
             '5D_RETURN.median_std', 
@@ -105,8 +108,6 @@ class FactorNeutralizer:
                 
             # 先检查原始因子的R²
             original_r2 = self.check_original_r2(factor)
-            print(f"\n因子 [{factor}] 中性化前:")
-            print(f"  行业+市值解释力 (R²) = {original_r2:.4f}")
             
             # 执行中性化
             new_col = factor.replace('_std', '_neutral')
@@ -121,8 +122,6 @@ class FactorNeutralizer:
             
             # 检查中性化后的R²
             neutralized_r2 = self.check_original_r2(new_col)
-            print(f"中性化后 [{new_col}]:")
-            print(f"  行业+市值解释力 (R²) = {neutralized_r2:.4f}")
             print("━" * 50)
 
     def check_neutralization(self, original_col, neutralized_col):
@@ -169,6 +168,6 @@ class FactorNeutralizer:
         self.process_factors()
         self.save_results()
 
-if __name__ == "__main__":
-    neutralizer = FactorNeutralizer()
+def execute(input_path,output_path):
+    neutralizer = FactorNeutralizer(input_path,output_path)
     neutralizer.run()

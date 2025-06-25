@@ -14,13 +14,19 @@ import pandas as pd
 import pyarrow.parquet as pq
 from pathlib import Path
 from tqdm import tqdm
+from utils import Factor_5D_reverse
 import time
 
 class StockDataProcessor:
-    def __init__(self):
-        self.basic_path = Path("../dataset/intern_data_new/basic_data")
-        self.risk_path = Path("../dataset/intern_data_new/risk_data")
-        self.output_path = Path("../dataset/processed_data")
+    def __init__(self,basic_path, risk_path, output_path,
+                 return_short, return_med, return_long, trade_threshold):
+        self.basic_path = Path(basic_path)
+        self.risk_path = Path(risk_path)
+        self.output_path = Path(output_path)
+        self.return_short = return_short
+        self.return_med = return_med
+        self.return_long = return_long
+        self.trade_threshold = trade_threshold
         self.merged_data = None
 
     def _load_single_stock_data(self, stock_code):
@@ -29,7 +35,7 @@ class StockDataProcessor:
             # Load basic data (TRADE_DATE is index)
             basic_file = self.basic_path / f"{stock_code}.parquet"
             basic_df = pd.read_parquet(basic_file, columns=[
-                'VWAP_PRICE_2', 'TRADE_DATE_COUNTER','MARKET_VALUE',
+                'VWAP_PRICE_2', 'TRADE_DATE_COUNTER','MARKET_VALUE','TURNOVER_VOL',
                 'HIGHEST_PRICE_2', 'LOWEST_PRICE_2'
             ])
             basic_df = basic_df.rename_axis('TRADE_DATE').reset_index()
@@ -37,8 +43,9 @@ class StockDataProcessor:
             # Filter problematic trades
             basic_df = basic_df[
                 # (basic_df['TRADE_DATE_GAP'] == 0) &
-                (basic_df['HIGHEST_PRICE_2'] - basic_df['LOWEST_PRICE_2'] > 1e-6) &
-                (basic_df['TRADE_DATE_COUNTER'] >= 60)
+                (basic_df['HIGHEST_PRICE_2'] - basic_df['LOWEST_PRICE_2'] > self.trade_threshold) &
+                (basic_df['TRADE_DATE_COUNTER'] >= 60) &
+                (basic_df['TURNOVER_VOL']  > 0)
             ]
             
             # Load risk data (TRADE_DATE is index, columns 21+)
@@ -53,21 +60,20 @@ class StockDataProcessor:
             
             # Calculate returns
             merged = merged.sort_values('TRADE_DATE')
-            merged['5D_RETURN'] = merged.groupby('STOCK_CODE')['VWAP_PRICE_2'].transform(
-                lambda x: x.pct_change(5)
+            merged['5D_RETURN'] = Factor_5D_reverse.calculate_5d_return(merged)
+
+            merged[f'NEXT_{self.return_short}DAY_RETURN_RATIO'] = merged.groupby('STOCK_CODE')['VWAP_PRICE_2'].transform(
+                lambda x: (x.shift(-(1+self.return_short)) - x.shift(-1)) / x.shift(-1)
             )
-            merged['NEXT_DAY_RETURN_RATIO'] = merged.groupby('STOCK_CODE')['VWAP_PRICE_2'].transform(
-                lambda x: (x.shift(-2) - x.shift(-1)) / x.shift(-1)
+            merged[f'NEXT_{self.return_med}DAY_RETURN_RATIO'] = merged.groupby('STOCK_CODE')['VWAP_PRICE_2'].transform(
+                lambda x: (x.shift(-(1+self.return_med)) - x.shift(-1)) / x.shift(-1)
             )
-            merged['NEXT_5DAY_RETURN_RATIO'] = merged.groupby('STOCK_CODE')['VWAP_PRICE_2'].transform(
-                lambda x: (x.shift(-6) - x.shift(-1)) / x.shift(-1)
-            )
-            merged['NEXT_20DAY_RETURN_RATIO'] = merged.groupby('STOCK_CODE')['VWAP_PRICE_2'].transform(
-                lambda x: (x.shift(-21) - x.shift(-1)) / x.shift(-1)
+            merged[f'NEXT_{self.return_long}DAY_RETURN_RATIO'] = merged.groupby('STOCK_CODE')['VWAP_PRICE_2'].transform(
+                lambda x: (x.shift(-(1+self.return_long)) - x.shift(-1)) / x.shift(-1)
             )
             
-            return merged.dropna(subset=['5D_RETURN', 'NEXT_DAY_RETURN_RATIO', 
-                                       'NEXT_5DAY_RETURN_RATIO', 'NEXT_20DAY_RETURN_RATIO'])
+            return merged.dropna(subset=['5D_RETURN', f'NEXT_{self.return_short}DAY_RETURN_RATIO', 
+                                       f'NEXT_{self.return_med}DAY_RETURN_RATIO', f'NEXT_{self.return_long}DAY_RETURN_RATIO'])
         
         except Exception as e:
             print(f"Error processing {stock_code}. Info: {e}")
@@ -95,13 +101,16 @@ class StockDataProcessor:
         self.output_path.mkdir(exist_ok=True)
         self.merged_data.to_parquet(self.output_path / "all_stocks_processed.parquet")
 
-if __name__ == "__main__":
-    processor = StockDataProcessor()
+def execute(basic_path,risk_path,output_path,return_short,return_med,return_long,trade_threshold):
+    processor = StockDataProcessor(basic_path,risk_path,output_path,return_short,return_med,return_long,trade_threshold)
     result = processor.process_all_stocks()
     processor.save_results()
     print(f"\nProcessing completed. Final data shape: {result.shape}")
     print("Sample output:")
     print(result.head(10))
+
+if __name__ == "__main__":
+    execute()
 
 # Idealistically, after running the code, a 2-layer dataframe like 
 """

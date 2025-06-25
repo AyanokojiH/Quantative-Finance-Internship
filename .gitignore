@@ -1,4 +1,8 @@
 /.conda
-/docs
-/dataset
 /.vscode
+__pycache__/
+*.py[cod]
+*$py.class_
+weekly-report.md
+blueprint.md
+/dataset

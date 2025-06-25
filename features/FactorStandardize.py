@@ -22,9 +22,10 @@ import numpy as np
 from pathlib import Path
 
 class FactorStandardizer:
-    def __init__(self):
-        self.input_path = Path("../dataset/processed_data/all_stocks_processed.parquet")
-        self.output_path = Path("../dataset/processed_data/standardized.parquet")
+    def __init__(self,input_path,output_path,n):
+        self.input_path = Path(input_path)
+        self.output_path = Path(output_path)
+        self.n = n
         self.data = None
         self.factors = [
             '5D_RETURN',
@@ -38,13 +39,13 @@ class FactorStandardizer:
         self.data = pd.read_parquet(self.input_path)
         print(f"Loaded data shape: {self.data.shape}")
 
-    def median_method(self, series, n=3):
+    def median_method(self, series):
         """Median standardization method"""
         xm = series.median()
         dmad = (series - xm).abs().median()
         
-        upper_bound = xm + n * dmad
-        lower_bound = xm - n * dmad
+        upper_bound = xm + self.n * dmad
+        lower_bound = xm - self.n * dmad
         
         adjusted = series.clip(lower_bound, upper_bound)
         standardized = (adjusted - adjusted.mean()) / adjusted.std()
@@ -84,6 +85,6 @@ class FactorStandardizer:
         self.standardize_factors()
         self.save_results()
 
-if __name__ == "__main__":
-    standardizer = FactorStandardizer()
+def execute(input_path,output_path,n):
+    standardizer = FactorStandardizer(input_path,output_path,n)
     standardizer.run()

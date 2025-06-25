@@ -1,12 +1,12 @@
 import pandas as pd
 import time
-datasource = "./dataset/processed_data/neutralization.parquet"
+datasource = "./dataset/intern_data_new/basic_data/000002.parquet"
 
 df = pd.read_parquet(datasource)
 
 print(df.shape)
 print(df.columns)
-print(df.iloc[:, 49:52].head())
+print(df.head())
 
 
 
