@@ -1,0 +1,45 @@
+Date : 2025-06-26 15:53:39
+Directory : c:\Users\10744\Desktop\Internship\ToTQuant\Research
+Total : 14 files,  926 codes, 226 comments, 216 blanks, all 1368 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Python   |         10 |        633 |        226 |        188 |      1,047 |
+| YAML     |          2 |        195 |          0 |          8 |        203 |
+| Markdown |          2 |         98 |          0 |         20 |        118 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++--------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                 | files      | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                    |         14 |        926 |        226 |        216 |      1,368 |
+| . (Files)                                                                            |          4 |        338 |          7 |         29 |        374 |
+| config                                                                               |          2 |         44 |          0 |         10 |         54 |
+| docs                                                                                 |          1 |         31 |          0 |          8 |         39 |
+| features                                                                             |          6 |        497 |        206 |        158 |        861 |
+| utils                                                                                |          1 |         16 |         13 |         11 |         40 |
++--------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++--------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                             | language | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\config\Config.py                 | Python   |         17 |          0 |          4 |         21 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\config\config.yaml               | YAML     |         27 |          0 |          6 |         33 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\docs\result_T-test.md            | Markdown |         31 |          0 |          8 |         39 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\environment.yml                  | YAML     |        168 |          0 |          2 |        170 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorBacktest.py       | Python   |         77 |         10 |         24 |        111 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorIC.py             | Python   |        148 |         75 |         54 |        277 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorNeutralization.py | Python   |         67 |         65 |         31 |        163 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorReturn.py         | Python   |         60 |         12 |         12 |         84 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorStandardize.py    | Python   |         59 |         25 |         19 |        103 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\LoadData.py             | Python   |         86 |         19 |         18 |        123 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\main.py                          | Python   |         98 |          7 |         12 |        117 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\readme.md                        | Markdown |         67 |          0 |         12 |         79 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\test.py                          | Python   |          5 |          0 |          3 |          8 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\utils\Factor_5D_reverse.py       | Python   |         16 |         13 |         11 |         40 |
+| Total                                                                                |          |        926 |        226 |        216 |      1,368 |
++--------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+

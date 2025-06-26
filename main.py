@@ -1,4 +1,4 @@
-from features import FactorIC, FactorNeutralization, FactorReturn, FactorStandardize, LoadData
+from features import FactorIC, FactorNeutralization, FactorReturn, FactorStandardize, FactorBacktest,LoadData
 from config import Config
 import time
 
@@ -6,7 +6,7 @@ class Pipe:
     def __init__(self):
         self.para = None
         self.status = 0
-        self.timings = {}  # 用于存储各步骤的执行时间
+        self.timings = {} 
 
     def _time_it(self, func, step_name):
         start_time = time.time()
@@ -21,7 +21,7 @@ class Pipe:
         print("Parameters Loaded Successfully. Waiting...")
         
         # 步骤1: 加载数据
-        print("\nCurrent Process: LoadData(1/5). In this step we load data from the dataset")
+        print("\nCurrent Process: LoadData(1/6). In this step we load data from the dataset")
         print("And calculate the values of the factors.")
         load_time = self._time_it(
             lambda: LoadData.execute(
@@ -39,7 +39,7 @@ class Pipe:
         print("="*50, end='\n\n')
         
         # 步骤2: 因子标准化
-        print("Current Process: FactorStandardize(2/5). In this step we standardize the factor's value")
+        print("Current Process: FactorStandardize(2/6). In this step we standardize the factor's value")
         print("so as to avoid influence from extreme values.")
         std_time = self._time_it(
             lambda:FactorStandardize.execute(
@@ -52,7 +52,7 @@ class Pipe:
         print("="*50, end='\n\n')
         
         # 步骤3: 因子中性化
-        print("Current Process: FactorNeutralization(3/5). In this step we neutralize the factor's value")
+        print("Current Process: FactorNeutralization(3/6). In this step we neutralize the factor's value")
         print("so as to avoid influence from different industries and MarketValues.")
         neutral_time = self._time_it(lambda: FactorNeutralization.execute(
             input_path = self.para['path']['Factor_Neutralization']['input_path'],
@@ -63,7 +63,7 @@ class Pipe:
         print("="*50, end='\n\n')
         
         # 步骤4: 计算因子收益
-        print("Current Process: FactorReturn_Calculating(4/5). In this step we calculate all the factor's return.")
+        print("Current Process: FactorReturn_Calculating(4/6). In this step we calculate all the factor's return.")
         print("A brief report will be given.")
         return_time = self._time_it(lambda:FactorReturn.execute(
             input_path= self.para['path']['Factor_Return']['read_path'],
@@ -76,7 +76,7 @@ class Pipe:
         print("="*50, end='\n\n')
         
         # 步骤5: 计算IC值
-        print("Current Process: FactorIC_Calculating(5/5). In this step we calculate all the factor's IC,Rank-IC and ICIR.")
+        print("Current Process: FactorIC_Calculating(5/6). In this step we calculate all the factor's IC,Rank-IC and ICIR.")
         print("A brief report will be given.")
         ic_time = self._time_it(lambda: FactorIC.execute(
             use_factor= self.para['path']['Factor_IC']['use_factor'],
@@ -86,12 +86,20 @@ class Pipe:
         ), "FactorIC")
         print(f"-> Completed in {ic_time:.2f} seconds")
         print("="*50, end='\n\n')
-        
-        # 打印汇总时间报告
+
+        # 步骤6：因子回测
+        print("Current Process: FactorBacktesting(6/6). In this step we will run a decile portfolio backtest to see the factor's performance.")
+        print("Too see the details, visit ./dataset/processed_data/backtest_results.")
+        backtest_time = self._time_it(lambda: FactorBacktest.execute(
+            input_path=self.para['path']['Factor_Backtest']['input_path'],
+            output_path= self.para['path']['Factor_Backtest']['output_dir'],
+            short=self.para['parameters']['return_short'],
+            med=self.para['parameters']['return_med'],
+            long=self.para['parameters']['return_long']
+        ),"FactorBacktest")        
         self._print_timing_summary()
 
     def _print_timing_summary(self):
-        """打印各步骤耗时汇总"""
         print("\n" + "="*50)
         print("Process Timing Summary:")
         print("-"*50)

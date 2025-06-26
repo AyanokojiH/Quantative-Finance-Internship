@@ -35,9 +35,9 @@ class StockDataProcessor:
             # Load basic data (TRADE_DATE is index)
             basic_file = self.basic_path / f"{stock_code}.parquet"
             basic_df = pd.read_parquet(basic_file, columns=[
-                'VWAP_PRICE_2', 'TRADE_DATE_COUNTER','MARKET_VALUE','TURNOVER_VOL',
+                'VWAP_PRICE_2', 'TRADE_DATE_COUNTER','MARKET_VALUE','TURNOVER_VOL','NEG_MARKET_VALUE',
                 'HIGHEST_PRICE_2', 'LOWEST_PRICE_2'
-            ])
+            ],engine='pyarrow')
             basic_df = basic_df.rename_axis('TRADE_DATE').reset_index()
             
             # Filter problematic trades
@@ -85,7 +85,7 @@ class StockDataProcessor:
         all_stocks = sorted([f.stem for f in self.basic_path.glob("*.parquet")])
         processed_dfs = []
         
-        for stock_code in tqdm(all_stocks, desc="Processing stocks"):
+        for stock_code in tqdm(all_stocks, desc="Processing stocks",mininterval=2.0):
             stock_data = self._load_single_stock_data(stock_code)
             if stock_data is not None:
                 processed_dfs.append(stock_data)

@@ -1,12 +1,8 @@
 import pandas as pd
-import time
-datasource = "./dataset/intern_data_new/basic_data/000002.parquet"
 
-df = pd.read_parquet(datasource)
+Datasource = "./dataset/intern_data_new/basic_data/000001.parquet"
 
-print(df.shape)
+df = pd.read_parquet(Datasource)
+
 print(df.columns)
-print(df.head())
-
-
-
+print(df.head(10))

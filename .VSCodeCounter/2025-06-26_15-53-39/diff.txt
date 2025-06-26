@@ -1,0 +1,38 @@
+Date : 2025-06-26 15:53:39
+Directory : c:\Users\10744\Desktop\Internship\ToTQuant\Research
+Total : 9 files,  188 codes, 93 comments, 38 blanks, all 319 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| YAML     |          2 |        172 |          0 |          3 |        175 |
+| Python   |          7 |         16 |         93 |         35 |        144 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++--------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                 | files      | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                    |          9 |        188 |         93 |         38 |        319 |
+| . (Files)                                                                            |          3 |        175 |         -1 |         -1 |        173 |
+| config                                                                               |          1 |          4 |          0 |          1 |          5 |
+| features                                                                             |          4 |          0 |         81 |         28 |        109 |
+| utils                                                                                |          1 |          9 |         13 |         10 |         32 |
++--------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++--------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                             | language | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\config\config.yaml               | YAML     |          4 |          0 |          1 |          5 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\environment.yml                  | YAML     |        168 |          0 |          2 |        170 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorBacktest.py       | Python   |         77 |         10 |         24 |        111 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorIC.py             | Python   |        -48 |         41 |          3 |         -4 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorNeutralization.py | Python   |        -41 |         32 |         -1 |        -10 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorStandardize.py    | Python   |         12 |         -2 |          2 |         12 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\main.py                          | Python   |          9 |         -1 |          0 |          8 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\test.py                          | Python   |         -2 |          0 |         -3 |         -5 |
+| c:\Users\10744\Desktop\Internship\ToTQuant\Research\utils\Factor_5D_reverse.py       | Python   |          9 |         13 |         10 |         32 |
+| Total                                                                                |          |        188 |         93 |         38 |        319 |
++--------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+

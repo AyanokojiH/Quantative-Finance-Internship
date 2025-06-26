@@ -16,6 +16,11 @@ path:
     backtest: 0
   Factor_IC:
     use_factor: 5D_RETURN.rank_std
+  Factor_Backtest:
+    input_path: "./dataset/processed_data/Neutralization.parquet"
+    output_dir: "./dataset/processed_data/backtest_results"
+    use_factor: 5D_RETURN.rank_std,5D_RETURN.median_std
+
     
 
 

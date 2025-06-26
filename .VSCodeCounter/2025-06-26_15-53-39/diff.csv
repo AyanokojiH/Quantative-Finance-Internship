@@ -1,0 +1,11 @@
+"filename", "language", "Python", "YAML", "comment", "blank", "total"
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\config\config.yaml", "YAML", 0, 4, 0, 1, 5
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\environment.yml", "YAML", 0, 168, 0, 2, 170
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorBacktest.py", "Python", 77, 0, 10, 24, 111
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorIC.py", "Python", -48, 0, 41, 3, -4
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorNeutralization.py", "Python", -41, 0, 32, -1, -10
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorStandardize.py", "Python", 12, 0, -2, 2, 12
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\main.py", "Python", 9, 0, -1, 0, 8
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\test.py", "Python", -2, 0, 0, -3, -5
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\utils\Factor_5D_reverse.py", "Python", 9, 0, 13, 10, 32
+"Total", "-", 16, 172, 93, 38, 319

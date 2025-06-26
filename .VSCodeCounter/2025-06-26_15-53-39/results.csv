@@ -1,0 +1,16 @@
+"filename", "language", "Python", "Markdown", "YAML", "comment", "blank", "total"
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\config\Config.py", "Python", 17, 0, 0, 0, 4, 21
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\config\config.yaml", "YAML", 0, 0, 27, 0, 6, 33
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\docs\result_T-test.md", "Markdown", 0, 31, 0, 0, 8, 39
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\environment.yml", "YAML", 0, 0, 168, 0, 2, 170
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorBacktest.py", "Python", 77, 0, 0, 10, 24, 111
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorIC.py", "Python", 148, 0, 0, 75, 54, 277
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorNeutralization.py", "Python", 67, 0, 0, 65, 31, 163
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorReturn.py", "Python", 60, 0, 0, 12, 12, 84
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\FactorStandardize.py", "Python", 59, 0, 0, 25, 19, 103
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\features\LoadData.py", "Python", 86, 0, 0, 19, 18, 123
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\main.py", "Python", 98, 0, 0, 7, 12, 117
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\readme.md", "Markdown", 0, 67, 0, 0, 12, 79
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\test.py", "Python", 5, 0, 0, 0, 3, 8
+"c:\Users\10744\Desktop\Internship\ToTQuant\Research\utils\Factor_5D_reverse.py", "Python", 16, 0, 0, 13, 11, 40
+"Total", "-", 633, 98, 195, 226, 216, 1368

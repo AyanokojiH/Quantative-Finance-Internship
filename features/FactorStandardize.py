@@ -22,7 +22,7 @@ import numpy as np
 from pathlib import Path
 
 class FactorStandardizer:
-    def __init__(self,input_path,output_path,n):
+    def __init__(self, input_path, output_path, n=3):
         self.input_path = Path(input_path)
         self.output_path = Path(output_path)
         self.n = n
@@ -39,31 +39,44 @@ class FactorStandardizer:
         self.data = pd.read_parquet(self.input_path)
         print(f"Loaded data shape: {self.data.shape}")
 
-    def median_method(self, series):
-        """Median standardization method"""
-        xm = series.median()
-        dmad = (series - xm).abs().median()
+    @staticmethod
+    def median_method(series, n=3):
+        arr = series.values
+        xm = np.median(arr)
+        dmad = np.median(np.abs(arr - xm))
         
-        upper_bound = xm + self.n * dmad
-        lower_bound = xm - self.n * dmad
+        upper_bound = xm + n * dmad
+        lower_bound = xm - n * dmad
+        adjusted = np.clip(arr, lower_bound, upper_bound)
         
-        adjusted = series.clip(lower_bound, upper_bound)
-        standardized = (adjusted - adjusted.mean()) / adjusted.std()
-        
-        return standardized
+        standardized = (adjusted - np.mean(adjusted)) / np.std(adjusted)
+        return pd.Series(standardized, index=series.index)
 
-    def rank_method(self, series):
-        """Rank standardization method"""
-        ranks = series.rank()
-        standardized = (ranks - ranks.mean()) / ranks.std()
-        return standardized
+    @staticmethod
+    def rank_method(series):
+        arr = series.values
+        
+        temp = arr.argsort()
+        ranks = np.empty_like(temp)
+        ranks[temp] = np.arange(len(arr))
+        
+        _, inv, counts = np.unique(arr, return_inverse=True, return_counts=True)
+        if np.any(counts > 1):
+            ranks = ranks[inv] + (counts[inv] - 1) / 2
+        
+        standardized = (ranks - np.mean(ranks)) / np.std(ranks)
+        return pd.Series(standardized, index=series.index)
 
     def standardize_factors(self):
         """Apply both standardization methods to all factors"""
         for factor in self.factors:
+            if factor not in self.data.columns:
+                print(f"Warning: Factor {factor} not found in data")
+                continue
+                
             # Median method
             self.data[f"{factor}.median_std"] = self.data.groupby('TRADE_DATE')[factor].transform(
-                lambda x: self.median_method(x)
+                lambda x: self.median_method(x, self.n)
             )
             
             # Rank method
@@ -72,7 +85,7 @@ class FactorStandardizer:
             )
         
         print("Standardization completed. New columns:")
-        print([col for col in self.data.columns if '_std' in col])
+        print([col for col in self.data.columns if '.median_std' in col or '.rank_std' in col])
 
     def save_results(self):
         """Save standardized data"""
@@ -85,6 +98,6 @@ class FactorStandardizer:
         self.standardize_factors()
         self.save_results()
 
-def execute(input_path,output_path,n):
-    standardizer = FactorStandardizer(input_path,output_path,n)
+def execute(input_path, output_path, n=3):
+    standardizer = FactorStandardizer(input_path, output_path, n)
     standardizer.run()

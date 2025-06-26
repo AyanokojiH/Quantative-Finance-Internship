@@ -42,35 +42,27 @@ class FactorICCalculator:
             self.data = self.data[pd.to_datetime(self.data['TRADE_DATE']).dt.year == year]
 
     def calculate_ic(self, factor_col: str, return_col: str) -> Dict[str, float]:
-        # 计算因子和收益率的协方差
         cov = np.cov(self.data[factor_col], self.data[return_col])[0, 1]
         
-        # 计算标准差
         factor_std = self.data[factor_col].std()
         return_std = self.data[return_col].std()
         
-        # 计算IC
         ic = cov / (factor_std * return_std)
         
-        # 计算每个样本点的IC值
         factor_z = (self.data[factor_col] - self.data[factor_col].mean()) / factor_std
         return_z = (self.data[return_col] - self.data[return_col].mean()) / return_std
         pointwise_ic = factor_z * return_z
         
-        # 计算绝对IC（所有样本点IC绝对值的平均值）
         abs_ic = np.mean(np.abs(ic))
-        
-        # 计算RankIC
+
         rank_ic, rank_p = spearmanr(self.data[factor_col], self.data[return_col])
         
-        # 计算每个样本点的RankIC值
         factor_rank = self.data[factor_col].rank()
         return_rank = self.data[return_col].rank()
         factor_rank_z = (factor_rank - factor_rank.mean()) / factor_rank.std()
         return_rank_z = (return_rank - return_rank.mean()) / return_rank.std()
         pointwise_rank_ic = factor_rank_z * return_rank_z
         
-        # 计算绝对RankIC（所有样本点RankIC绝对值的平均值）
         abs_rank_ic = np.mean(np.abs(rank_ic))
         
         return {
@@ -99,9 +91,9 @@ class FactorICCalculator:
         months = self.data['MONTH'].unique()
         
         monthly_ics = []
-        monthly_abs_ics = []  # 新增：存储每月AbsIC
+        monthly_abs_ics = [] 
         monthly_rank_ics = []
-        monthly_abs_rank_ics = []  # 新增：存储每月AbsRankIC
+        monthly_abs_rank_ics = [] 
         
         for month in months:
             monthly_data = self.data[self.data['MONTH'] == month]
@@ -113,9 +105,8 @@ class FactorICCalculator:
             rank_ic, _ = spearmanr(monthly_data[factor_col], monthly_data[f'NEXT_{self.short}DAY_RETURN_RATIO'])
             
             monthly_ics.append(ic)
-            monthly_abs_ics.append(abs(ic))  # 存储绝对值
-            monthly_rank_ics.append(rank_ic)
-            monthly_abs_rank_ics.append(abs(rank_ic))  # 存储绝对值
+            monthly_abs_ics.append(abs(ic)) 
+            monthly_abs_rank_ics.append(abs(rank_ic)) 
         
         if len(monthly_ics) < window:
             return {
@@ -131,17 +122,17 @@ class FactorICCalculator:
         
         # Calculate rolling statistics
         rolling_ic = pd.Series(monthly_ics).rolling(window)
-        rolling_abs_ic = pd.Series(monthly_abs_ics).rolling(window)  # 新增：滚动计算AbsIC均值
+        rolling_abs_ic = pd.Series(monthly_abs_ics).rolling(window)  
         rolling_rank_ic = pd.Series(monthly_rank_ics).rolling(window)
-        rolling_abs_rank_ic = pd.Series(monthly_abs_rank_ics).rolling(window)  # 新增：滚动计算AbsRankIC均值
+        rolling_abs_rank_ic = pd.Series(monthly_abs_rank_ics).rolling(window) 
         
         return {
             'ICIR': rolling_ic.mean().iloc[-1] / rolling_ic.std().iloc[-1] if rolling_ic.std().iloc[-1] != 0 else np.nan,
             'IC_mean': rolling_ic.mean().iloc[-1],
-            'IC_abs_mean': rolling_abs_ic.mean().iloc[-1],  # 修正：使用绝对值序列的均值
+            'IC_abs_mean': rolling_abs_ic.mean().iloc[-1],  
             'IC_std': rolling_ic.std().iloc[-1],
             'RankIC_mean': rolling_rank_ic.mean().iloc[-1],
-            'RankIC_abs_mean': rolling_abs_rank_ic.mean().iloc[-1],  # 修正：使用绝对值序列的均值
+            'RankIC_abs_mean': rolling_abs_rank_ic.mean().iloc[-1],  
             'RankIC_std': rolling_rank_ic.std().iloc[-1],
             'n_months': len(monthly_ics)
         }
@@ -157,94 +148,97 @@ def format_float(x: float) -> str:
     return f"{x:.4f}" if abs(x) < 1 else f"{x:.2f}"
 
 def print_results(results_df: pd.DataFrame, icir_info: Dict[str, float], year: str) -> None:
-    print("\n" + "="*60)
-    print(f"RESULTS FOR {year}")
-    print("="*60)
-    
-    # ICIR information
-    print(f"\nICIR (12-month rolling): {format_float(icir_info.get('ICIR', np.nan))}")
-    print(f"Mean IC: {format_float(icir_info.get('IC_mean', np.nan))}")
-    print(f"IC Std: {format_float(icir_info.get('IC_std', np.nan))}")
-    print(f"Months included: {icir_info.get('n_months', 0)}")
-    
-    # IC table
-    output_columns = [
-        ('Target Return', 'target', lambda x: x.replace('_RETURN_RATIO', '')),
-        ('IC', 'IC', format_float),
-        ('AbsIC', 'AbsIC', format_float),
-        ('RankIC', 'RankIC', format_float),
-        ('AbsRankIC', 'AbsRankIC', format_float),
-        ('RankIC p-value', 'RankIC_pvalue', lambda x: f"{x:.4f}"),
-        ('Obs Count', 'n_obs', lambda x: f"{x:,}")
-    ]
-    
-    print("\n" + "|".join([f" {col[0]:<15}" for col in output_columns]) + "|")
-    print("-"*(16*len(output_columns)+1))
-    
-    for _, row in results_df.iterrows():
-        print("|".join([f" {col[2](row[col[1]]):<15}" for col in output_columns]) + "|")
+    with open('./features/IC_Info.txt', 'a') as f:
 
-def generate_summary_table(calculator: FactorICCalculator, years: List[int], factor_col: str, short, med, long) -> pd.DataFrame:
-    results = []
-    for year in years:
-        if year == 0:
-            continue  # Skip "ALL YEARS"
-            
-        calculator.filter_by_year(year)
+        f.write("\n" + "="*60 + "\n")
+        f.write(f"RESULTS FOR {year}\n")
+        f.write("="*60 + "\n")
         
-        # Initialize dictionary to store yearly results
-        year_result = {'Year': year}
+        f.write(f"\nICIR (12-month rolling): {format_float(icir_info.get('ICIR', np.nan))}\n")
+        f.write(f"Mean IC: {format_float(icir_info.get('IC_mean', np.nan))}\n")
+        f.write(f"IC Std: {format_float(icir_info.get('IC_std', np.nan))}\n")
+        f.write(f"Months included: {icir_info.get('n_months', 0)}\n")
         
-        # Calculate metrics for each target return period
-        for target in [f'NEXT_{short}DAY_RETURN_RATIO', f'NEXT_{med}DAY_RETURN_RATIO', f'NEXT_{long}DAY_RETURN_RATIO']:
-            # Calculate metrics
-            metrics = calculator.calculate_ic(factor_col, target)
-            
-            # Store the metrics with appropriate prefixes
-            prefix = target.replace('_RETURN_RATIO', '')
-            year_result.update({
-                f'{prefix}_IC': metrics['IC'],
-                f'{prefix}_AbsIC': metrics['AbsIC'],
-                f'{prefix}_RankIC': metrics['RankIC'],
-                f'{prefix}_AbsRankIC': metrics['AbsRankIC'],
-            })
-            
-            # Calculate ICIR for each target (using monthly data)
-            if 'TRADE_DATE' in calculator.data.index.names:
-                dates = pd.to_datetime(calculator.data.index.get_level_values('TRADE_DATE'))
-            else:
-                dates = pd.to_datetime(calculator.data['TRADE_DATE'])
-            
-            monthly_ics = []
-            for month in dates.to_period('M').unique():
-                month_data = calculator.data[dates.to_period('M') == month]
-                if len(month_data) < 10:
-                    continue
-                ic = month_data[factor_col].corr(month_data[target])
-                monthly_ics.append(ic)
-            
-            if len(monthly_ics) >= 12:
-                year_result[f'{prefix}_ICIR'] = np.mean(monthly_ics) / np.std(monthly_ics) if np.std(monthly_ics) != 0 else np.nan
-            else:
-                year_result[f'{prefix}_ICIR'] = np.nan
+        output_columns = [
+            ('Target Return', 'target', lambda x: x.replace('_RETURN_RATIO', '')),
+            ('IC', 'IC', format_float),
+            ('AbsIC', 'AbsIC', format_float),
+            ('RankIC', 'RankIC', format_float),
+            ('AbsRankIC', 'AbsRankIC', format_float),
+            ('RankIC p-value', 'RankIC_pvalue', lambda x: f"{x:.4f}"),
+            ('Obs Count', 'n_obs', lambda x: f"{x:,}")
+        ]
         
-        results.append(year_result)
+        f.write("\n" + "|".join([f" {col[0]:<15}" for col in output_columns]) + "|\n")
+        f.write("-"*(16*len(output_columns)+1) + "\n")
+        
+        for _, row in results_df.iterrows():
+            f.write("|".join([f" {col[2](row[col[1]]):<15}" for col in output_columns]) + "|\n")
+
+        from datetime import datetime
+        f.write(f"\nGenerated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+
+# def generate_summary_table(calculator: FactorICCalculator, years: List[int], factor_col: str, short, med, long) -> pd.DataFrame:
+#     results = []
+#     for year in years:
+#         if year == 0:
+#             continue  # Skip "ALL YEARS"
+            
+#         calculator.filter_by_year(year)
+        
+#         # Initialize dictionary to store yearly results
+#         year_result = {'Year': year}
+        
+#         # Calculate metrics for each target return period
+#         for target in [f'NEXT_{short}DAY_RETURN_RATIO', f'NEXT_{med}DAY_RETURN_RATIO', f'NEXT_{long}DAY_RETURN_RATIO']:
+#             # Calculate metrics
+#             metrics = calculator.calculate_ic(factor_col, target)
+            
+#             # Store the metrics with appropriate prefixes
+#             prefix = target.replace('_RETURN_RATIO', '')
+#             year_result.update({
+#                 f'{prefix}_IC': metrics['IC'],
+#                 f'{prefix}_AbsIC': metrics['AbsIC'],
+#                 f'{prefix}_RankIC': metrics['RankIC'],
+#                 f'{prefix}_AbsRankIC': metrics['AbsRankIC'],
+#             })
+            
+#             # Calculate ICIR for each target (using monthly data)
+#             if 'TRADE_DATE' in calculator.data.index.names:
+#                 dates = pd.to_datetime(calculator.data.index.get_level_values('TRADE_DATE'))
+#             else:
+#                 dates = pd.to_datetime(calculator.data['TRADE_DATE'])
+            
+#             monthly_ics = []
+#             for month in dates.to_period('M').unique():
+#                 month_data = calculator.data[dates.to_period('M') == month]
+#                 if len(month_data) < 10:
+#                     continue
+#                 ic = month_data[factor_col].corr(month_data[target])
+#                 monthly_ics.append(ic)
+            
+#             if len(monthly_ics) >= 12:
+#                 year_result[f'{prefix}_ICIR'] = np.mean(monthly_ics) / np.std(monthly_ics) if np.std(monthly_ics) != 0 else np.nan
+#             else:
+#                 year_result[f'{prefix}_ICIR'] = np.nan
+        
+#         results.append(year_result)
     
-    # Create DataFrame with ordered columns
-    summary_df = pd.DataFrame(results)
+#     # Create DataFrame with ordered columns
+#     summary_df = pd.DataFrame(results)
     
-    # Define column order
-    columns_order = ['Year']
-    for prefix in [f'NEXT_{short}DAY', f'NEXT_{med}DAY', f'NEXT_{long}DAY']:
-        columns_order.extend([
-            f'{prefix}_IC',
-            f'{prefix}_AbsIC',
-            f'{prefix}_RankIC',
-            f'{prefix}_AbsRankIC',
-            f'{prefix}_ICIR'
-        ])
+#     # Define column order
+#     columns_order = ['Year']
+#     for prefix in [f'NEXT_{short}DAY', f'NEXT_{med}DAY', f'NEXT_{long}DAY']:
+#         columns_order.extend([
+#             f'{prefix}_IC',
+#             f'{prefix}_AbsIC',
+#             f'{prefix}_RankIC',
+#             f'{prefix}_AbsRankIC',
+#             f'{prefix}_ICIR'
+#         ])
     
-    return summary_df[columns_order].set_index('Year')
+#     return summary_df[columns_order].set_index('Year')
 
 def execute(use_factor, short, med, long):
     # Load data
@@ -256,7 +250,7 @@ def execute(use_factor, short, med, long):
         years = sorted(df.index.get_level_values('TRADE_DATE').year.unique())
     else:
         years = sorted(pd.to_datetime(df['TRADE_DATE']).dt.year.unique())
-    years = [0] + years  # 0 represents all years
+    years = years  # 0 represents all years
     
     factor = use_factor
     
@@ -267,15 +261,17 @@ def execute(use_factor, short, med, long):
         year_label = "ALL YEARS" if year == 0 else str(year)
         print_results(ic_results, icir_info, year_label)
     
+    print("See details in ./docs/result_IC.txt.")
+    
     # Generate summary table
-    summary_table = generate_summary_table(calculator, years[1:], factor, short, med, long)
+    # summary_table = generate_summary_table(calculator, years[1:], factor, short, med, long)
     
-    # Format display
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', 1000)
-    pd.set_option('display.float_format', '{:.4f}'.format)
+    # # Format display
+    # pd.set_option('display.max_columns', None)
+    # pd.set_option('display.width', 1000)
+    # pd.set_option('display.float_format', '{:.4f}'.format)
     
-    print("\n" + "="*120)
-    print("Five-Day Reversal Factor Performance Detailed Metrics (2010-2022)")
-    print("="*120)
-    print(summary_table)
+    # print("\n" + "="*120)
+    # print("Five-Day Reversal Factor Performance Detailed Metrics (2010-2022)")
+    # print("="*120)
+    # print(summary_table)
