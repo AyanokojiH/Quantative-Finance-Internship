@@ -1,4 +1,4 @@
-# Quantitative Factor Research Framework
+# Quantitative Finance - Single Factor Research Project
 
 ## Project Overview
 A standardized factor research pipeline implementing the Huatai quant methodology. Performs full-cycle factor analysis from computation to performance evaluation, including:
@@ -6,6 +6,7 @@ A standardized factor research pipeline implementing the Huatai quant methodolog
 - Standardization/neutralization
 - Return prediction testing
 - IC/Rank IC analysis
+- Backtesting
 
 ## Core Features
 ✅ 5D-Reversal factor analysis  
@@ -29,46 +30,14 @@ A standardized factor research pipeline implementing the Huatai quant methodolog
 │   ├── FactorStandardize.py
 │   ├── FactorIC.py
 │   └── FactorReturn.py
+|   |__ FactorBacktest.py
 |   
 │
 ├── main.py              # Pipeline controller
-└── requirements.txt
+└── environment.yml
 ```
 
-## Quick Start
-1. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-2. Configure data paths in `config/paths.yaml`
-
-3. Run full pipeline:
-```bash
-python main.py --factor momentum --start 20200101 --end 20221231
-```
-
-## Key Parameters
-Configure in `config/factor_params.yaml`:
-```yaml
-momentum:
-  windows: [5, 20, 60]    # Lookback periods
-  neutralization: 
-    - industry            # Neutralization methods
-    - market_cap
-```
-
-## Outputs
-- IC analysis reports (`results/ic_stats.csv`)
-- Factor return curves (`plots/return_curves/`)
-- Neutralized factor values (`output/factors/`)
-
-## Development Notes
-- All financial data should be sorted by TRADE_DATE
-- Uses WINSORIZE(0.05) for outlier handling
-- Turnover-based suspension filtering implemented
-
----
+## Note:
 
 This version:
 - Maintains technical accuracy
