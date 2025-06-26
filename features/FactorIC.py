@@ -77,65 +77,84 @@ class FactorICCalculator:
         }
 
     def calculate_icir(self, factor_col: str, window: int = 12) -> Dict[str, float]:
+        """修正后的ICIR计算方法（处理空数据情况）"""
         if 'TRADE_DATE' not in self.data.columns and 'TRADE_DATE' not in self.data.index.names:
             raise ValueError("TRADE_DATE column required for ICIR calculation")
             
-        # Ensure dates are in datetime format
+        # 准备日期数据
         if 'TRADE_DATE' in self.data.index.names:
             dates = pd.to_datetime(self.data.index.get_level_values('TRADE_DATE'))
         else:
             dates = pd.to_datetime(self.data['TRADE_DATE'])
         
-        # Convert to monthly periods
+        # 按月分组
         self.data['MONTH'] = dates.to_period('M')
         months = self.data['MONTH'].unique()
         
         monthly_ics = []
-        monthly_abs_ics = [] 
         monthly_rank_ics = []
-        monthly_abs_rank_ics = [] 
         
         for month in months:
             monthly_data = self.data[self.data['MONTH'] == month]
-            if len(monthly_data) < 10:  
+            if len(monthly_data) < 10:  # 最小样本量要求
                 continue
                 
-            # Calculate IC and RankIC for the month
+            # 计算月度IC和RankIC
             ic = monthly_data[factor_col].corr(monthly_data[f'NEXT_{self.short}DAY_RETURN_RATIO'])
             rank_ic, _ = spearmanr(monthly_data[factor_col], monthly_data[f'NEXT_{self.short}DAY_RETURN_RATIO'])
             
             monthly_ics.append(ic)
-            monthly_abs_ics.append(abs(ic)) 
-            monthly_abs_rank_ics.append(abs(rank_ic)) 
+            monthly_rank_ics.append(rank_ic)
         
-        if len(monthly_ics) < window:
+        # 处理数据不足的情况
+        if len(monthly_ics) == 0:
             return {
                 'ICIR': np.nan,
                 'IC_mean': np.nan,
-                'IC_abs_mean': np.nan,
                 'IC_std': np.nan,
                 'RankIC_mean': np.nan,
-                'RankIC_abs_mean': np.nan,
                 'RankIC_std': np.nan,
-                'n_months': len(monthly_ics)
+                'n_months': 0
             }
         
-        # Calculate rolling statistics
-        rolling_ic = pd.Series(monthly_ics).rolling(window)
-        rolling_abs_ic = pd.Series(monthly_abs_ics).rolling(window)  
-        rolling_rank_ic = pd.Series(monthly_rank_ics).rolling(window)
-        rolling_abs_rank_ic = pd.Series(monthly_abs_rank_ics).rolling(window) 
+        # 转换为Series便于计算滚动统计量
+        ic_series = pd.Series(monthly_ics)
+        rank_ic_series = pd.Series(monthly_rank_ics)
         
-        return {
-            'ICIR': rolling_ic.mean().iloc[-1] / rolling_ic.std().iloc[-1] if rolling_ic.std().iloc[-1] != 0 else np.nan,
-            'IC_mean': rolling_ic.mean().iloc[-1],
-            'IC_abs_mean': rolling_abs_ic.mean().iloc[-1],  
-            'IC_std': rolling_ic.std().iloc[-1],
-            'RankIC_mean': rolling_rank_ic.mean().iloc[-1],
-            'RankIC_abs_mean': rolling_abs_rank_ic.mean().iloc[-1],  
-            'RankIC_std': rolling_rank_ic.std().iloc[-1],
+        # 计算滚动统计量（仅当数据足够时）
+        result = {
             'n_months': len(monthly_ics)
         }
+        
+        # IC相关指标
+        if len(ic_series) >= window:
+            rolling_ic = ic_series.rolling(window)
+            result.update({
+                'ICIR': rolling_ic.mean().iloc[-1] / rolling_ic.std().iloc[-1] if rolling_ic.std().iloc[-1] != 0 else np.nan,
+                'IC_mean': rolling_ic.mean().iloc[-1],
+                'IC_std': rolling_ic.std().iloc[-1]
+            })
+        else:
+            result.update({
+                'ICIR': np.nan,
+                'IC_mean': np.nan,
+                'IC_std': np.nan
+            })
+        
+        # RankIC相关指标
+        if len(rank_ic_series) >= window:
+            rolling_rank_ic = rank_ic_series.rolling(window)
+            result.update({
+                'RankIC_mean': rolling_rank_ic.mean().iloc[-1],
+                'RankIC_std': rolling_rank_ic.std().iloc[-1]
+            })
+        else:
+            result.update({
+                'RankIC_mean': np.nan,
+                'RankIC_std': np.nan
+            })
+        
+        return result
 
     def calculate_all_metrics(self, factor_col: str) -> Tuple[pd.DataFrame, Dict[str, float]]:
         """Calculate both IC values and ICIR"""
@@ -242,7 +261,7 @@ def print_results(results_df: pd.DataFrame, icir_info: Dict[str, float], year: s
 
 def execute(use_factor, short, med, long):
     # Load data
-    df = pd.read_parquet("./dataset/processed_data/standardized.parquet")
+    df = pd.read_parquet("./dataset/processed_data/Neutralization.parquet")
     calculator = FactorICCalculator(df,short, med, long)
     
     # Get available years

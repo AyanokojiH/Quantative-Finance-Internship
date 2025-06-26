@@ -54,19 +54,10 @@ class FactorStandardizer:
 
     @staticmethod
     def rank_method(series):
-        arr = series.values
-        
-        temp = arr.argsort()
-        ranks = np.empty_like(temp)
-        ranks[temp] = np.arange(len(arr))
-        
-        _, inv, counts = np.unique(arr, return_inverse=True, return_counts=True)
-        if np.any(counts > 1):
-            ranks = ranks[inv] + (counts[inv] - 1) / 2
-        
-        standardized = (ranks - np.mean(ranks)) / np.std(ranks)
-        return pd.Series(standardized, index=series.index)
-
+        ranks = series.rank()
+        standardized = (ranks - ranks.mean()) / ranks.std()
+        return standardized
+    
     def standardize_factors(self):
         """Apply both standardization methods to all factors"""
         for factor in self.factors:
