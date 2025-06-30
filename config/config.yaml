@@ -1,4 +1,4 @@
-factor_name: 5D-Reverse
+factor: 5D-REVERSE
 
 path:
   load_data:
@@ -15,11 +15,10 @@ path:
     read_path: "./dataset/processed_data/neutralization.parquet"
     backtest: 0
   Factor_IC:
-    use_factor: 5D_RETURN.rank_std
+    use_factor: 5D-REVERSE.rank_std_neutral
   Factor_Backtest:
-    input_path: "./dataset/processed_data/Neutralization.parquet"
+    input_path: "./dataset/processed_data/neutralization.parquet"
     output_dir: "./dataset/processed_data/backtest_results"
-    use_factor: 5D_RETURN.rank_std,5D_RETURN.median_std
 
     
 

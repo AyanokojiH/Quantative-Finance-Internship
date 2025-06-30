@@ -4,6 +4,8 @@ __pycache__/
 *.py[cod]
 *$py.class_
 weekly-report.md
+weekly-report.pdf
 blueprint.md
 /dataset
 *./VSCodeCounter
+test.py

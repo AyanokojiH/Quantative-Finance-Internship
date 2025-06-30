@@ -22,13 +22,13 @@ import numpy as np
 from pathlib import Path
 
 class FactorStandardizer:
-    def __init__(self, input_path, output_path, n=3):
+    def __init__(self, input_path, output_path,n, factor ):
         self.input_path = Path(input_path)
         self.output_path = Path(output_path)
         self.n = n
         self.data = None
         self.factors = [
-            '5D_RETURN',
+            f'{factor}',
             # 'NEXT_DAY_RETURN_RATIO',
             # 'NEXT_5DAY_RETURN_RATIO',
             # 'NEXT_20DAY_RETURN_RATIO'
@@ -89,6 +89,6 @@ class FactorStandardizer:
         self.standardize_factors()
         self.save_results()
 
-def execute(input_path, output_path, n=3):
-    standardizer = FactorStandardizer(input_path, output_path, n)
+def execute(input_path, output_path,factor, n=3):
+    standardizer = FactorStandardizer(input_path, output_path, n,factor=factor)
     standardizer.run()

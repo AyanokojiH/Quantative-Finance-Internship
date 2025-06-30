@@ -1,163 +1,184 @@
-"""
-Features to be designed: Apply neutralization on the factor to avoid been influenced by MARKET_VALUE and industry.
-First, Regress y[factor_value] on X[dummies, Log(Marketvalue)], use every residual as the factor's new value
-Then, Standardize the new factor's value.
-"""
-
-
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
 from pathlib import Path
 import warnings
+from typing import Dict, List, Optional
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-class FactorNeutralizer:
-    def __init__(self,input_path,output_path):
+class RobustFactorNeutralizer:
+    def __init__(self, input_path: str, output_path: str, factor: str):
         self.input_path = Path(input_path)
         self.output_path = Path(output_path)
+        self.factor = factor
         self.data = None
+        self.industry_cols = []
         self.factor_columns = [
-            '5D_RETURN.median_std', 
-            '5D_RETURN.rank_std'
+            f'{factor}.median_std', 
+            f'{factor}.rank_std'
         ]
-    
+        self._type_checks = {
+            'MARKET_VALUE': np.float64,
+            'log_mcap': np.float64
+        }
+
+    def _validate_data_types(self):
+        """确保关键列的数据类型正确"""
+        type_errors = []
+        for col, dtype in self._type_checks.items():
+            if col in self.data.columns:
+                try:
+                    self.data[col] = self.data[col].astype(dtype)
+                except (ValueError, TypeError) as e:
+                    type_errors.append(f"{col}: {str(e)}")
+        
+        if type_errors:
+            raise TypeError(f"Data type conversion failed:\n" + "\n".join(type_errors))
+
     def load_data(self):
-        """Load standardized data with industry dummies and market cap"""
+        """加载并验证数据"""
         self.data = pd.read_parquet(self.input_path)
         
+        # 识别行业列
+        industry_prefixes = ['Agriculture', 'Automobiles', 'Banks', 'BuildMater', 'Chemicals', 
+        'Commerce', 'Computers', 'Conglomerates', 'ConstrDecor', 'Defense',
+        'ElectricalEquip', 'Electronics', 'FoodBeverages', 'HealthCare',
+        'HomeAppliances', 'Leisure', 'LightIndustry', 'MachineEquip', 'Media',
+        'Mining', 'NonbankFinan', 'NonferrousMetals', 'RealEstate', 'Steel',
+        'Telecoms', 'TextileGarment', 'Transportation', 'Utilities',
+        'BasicChemicals', 'BeautyCare', 'Coal', 'EnvironProtect', 'Petroleum',
+        'PowerEquip', 'RetailTrade', 'SocialServices', 'TextileApparel']  
         # Verify columns
-        self.industry_cols = [col for col in self.data.columns[5:42]] 
+        self.industry_cols = [col for col in self.data.columns if any(col.startswith(prefix) for prefix in industry_prefixes)]
+        
         if not self.industry_cols:
-            raise ValueError("No industry columns found")
+            raise ValueError("未找到行业分类列")
+        
+        # 准备市值数据
         if 'MARKET_VALUE' not in self.data.columns:
-            raise ValueError("MARKET_VALUE column missing")
+            raise ValueError("缺少MARKET_VALUE列")
         
-        # Prepare log market cap
-        self.data['log_mcap'] = np.log(self.data['MARKET_VALUE'].astype(float))
-        print(f"Loaded data with {len(self.industry_cols)} industries and market cap")
+        self.data['log_mcap'] = np.log(self.data['MARKET_VALUE'].astype(np.float64))
+        self._validate_data_types()
+        
+        print(f"Loaded data with {len(self.industry_cols)} industried successfully.")
 
-    def industry_mcap_neutralization(self, factor_series):
-        """
-        Neutralize factor by industry + market cap using regression
-        Returns: residual series (neutralized factor)
-        """
-        factor_series = pd.to_numeric(factor_series, errors='coerce')
-        
-        industry_dummies = pd.get_dummies(
-            self.data[self.industry_cols].idxmax(axis=1),
-            prefix='ind',
-            drop_first=True
-        )
-        
-        X = industry_dummies.astype(float)
-        X['log_mcap'] = self.data['log_mcap'].astype(float)
-        X = sm.add_constant(X)  
-        
-        valid_idx = factor_series.notna() & X.notna().all(axis=1)
-        y = factor_series[valid_idx]
-        X = X[valid_idx]
-        
-        if len(y) < 10 or X.shape[1] >= len(y):
-            print(f"Warning: Not enough data for regression - {len(y)} samples")
-            return pd.Series(np.nan, index=factor_series.index)
+    def _safe_daily_regression(self, y: pd.Series, X: pd.DataFrame) -> Optional[np.ndarray]:
+        """安全的每日回归计算"""
+        try:
+            # 强制类型转换
+            X = X.astype(np.float64)
+            y = y.astype(np.float64)
             
-        model = sm.OLS(y, X).fit()
-        residuals = pd.Series(np.nan, index=factor_series.index)
-        residuals[valid_idx] = model.resid
-        return residuals
+            # 检查有效样本量
+            if len(y) < 10 or X.shape[1] >= len(y):
+                return None
+                
+            # 添加截距项
+            X = sm.add_constant(X, has_constant='raise')
+            
+            # 矩阵秩检查
+            if np.linalg.matrix_rank(X) < X.shape[1]:
+                return None
+                
+            model = sm.OLS(y, X).fit()
+            return model.resid
+            
+        except Exception as e:
+            print(f"Failed to regress: {str(e)}")
+            return None
 
-    # def check_original_r2(self, factor_col):
-    #     """检查原始因子受行业/市值解释的程度"""
-    #     # 准备行业哑变量（排除基准行业）
-    #     industry_dummies = pd.get_dummies(
-    #         self.data[self.industry_cols].idxmax(axis=1),
-    #         prefix='ind',
-    #         drop_first=True
-    #     ).astype(float)
+    def daily_cross_sectional_neutralize(self, factor_series: pd.Series) -> pd.Series:
+        """健壮的日频横截面中性化"""
+        # 获取日期信息
+        if 'TRADE_DATE' in self.data.index.names:
+            dates = self.data.index.get_level_values('TRADE_DATE')
+        elif 'TRADE_DATE' in self.data.columns:
+            dates = pd.to_datetime(self.data['TRADE_DATE'])
+        else:
+            raise ValueError("No info of trade_date is involved.")
         
-    #     # 准备设计矩阵：行业 + 对数市值
-    #     X = pd.concat([industry_dummies, self.data[['log_mcap']]], axis=1)
-    #     X = sm.add_constant(X)  # 添加截距项
+        neutralized = pd.Series(np.nan, index=factor_series.index, name=factor_series.name)
         
-    #     # 提取因子值并对齐有效数据
-    #     y = self.data[factor_col]
-    #     valid_idx = y.notna() & X.notna().all(axis=1)
-        
-    #     if valid_idx.sum() < 10:  # 至少需要10个样本
-    #         print(f"⚠️ 数据不足: {factor_col} 仅有 {valid_idx.sum()} 个有效样本")
-    #         return np.nan
-        
-    #     # 计算原始R²
-    #     model = sm.OLS(y[valid_idx], X[valid_idx]).fit()
-    #     return model.rsquared
-
-    def process_factors(self):
-        for factor in self.factor_columns:
-            if factor not in self.data.columns:
-                print(f"⚠️ Missing factor:  {factor}")
+        for date, daily_data in self.data.groupby(dates):
+            try:
+                # 准备行业哑变量
+                industries = daily_data[self.industry_cols].idxmax(axis=1)
+                industry_dummies = pd.get_dummies(industries, drop_first=True)
+                
+                # 构建设计矩阵
+                X = pd.concat([
+                    industry_dummies.astype(np.float64),
+                    daily_data['log_mcap'].astype(np.float64)
+                ], axis=1)
+                
+                # 对齐因子值
+                y = factor_series.loc[daily_data.index]
+                valid_idx = y.notna() & X.notna().all(axis=1)
+                
+                # 执行安全回归
+                residuals = self._safe_daily_regression(
+                    y=y[valid_idx],
+                    X=X[valid_idx]
+                )
+                
+                if residuals is not None:
+                    neutralized.loc[daily_data.index[valid_idx]] = residuals
+                    
+            except Exception as e:
+                print(f"An error occured when dealing with {date} : {str(e)}")
                 continue
                 
-            # 先检查原始因子的R²
-            # original_r2 = self.check_original_r2(factor)
-            new_col = factor.replace('_std', '_neutral')
-            self.data[new_col] = self.industry_mcap_neutralization(self.data[factor])
-            
-            if self.data[new_col].notna().sum() > 0:
-                self.data[new_col] = (
-                    (self.data[new_col] - self.data[new_col].mean()) / 
-                    self.data[new_col].std()
-                )
-            
-            # 检查中性化后的R²
-            # neutralized_r2 = self.check_original_r2(new_col)
-            print("━" * 50)
+        return neutralized
 
-    # def check_neutralization(self, original_col, neutralized_col):
-    #     """Check if neutralization worked by comparing R-squared"""
-    #     if neutralized_col not in self.data.columns:
-    #         return np.nan
+    def process_all_factors(self):
+        """处理所有因子列"""
+        for factor_col in self.factor_columns:
+            if factor_col not in self.data.columns:
+                print(f"⚠️ Missing factor: {factor_col}")
+                continue
+                
+            print(f"\nDeal with factor: {factor_col}")
             
-    #     # Check industry effect
-    #     industry_dummies = pd.get_dummies(
-    #         self.data[self.industry_cols].idxmax(axis=1),
-    #         prefix='ind',
-    #         drop_first=True
-    #     ).astype(float)
-    #     X_ind = sm.add_constant(industry_dummies)
-    #     y = self.data[neutralized_col]
-    #     valid_idx = y.notna() & X_ind.notna().all(axis=1)
-        
-    #     if valid_idx.sum() > X_ind.shape[1]:  # 确保样本数大于特征数
-    #         model_ind = sm.OLS(y[valid_idx], X_ind[valid_idx]).fit()
-    #         ind_r2 = model_ind.rsquared
-    #     else:
-    #         ind_r2 = np.nan
+            # 中性化处理
+            neutralized_col = f"{factor_col}_neutral"
+            self.data[neutralized_col] = self.daily_cross_sectional_neutralize(
+                self.data[factor_col]
+            )
             
-    #     # Check market cap effect
-    #     X_mcap = sm.add_constant(self.data[['log_mcap']].astype(float))
-    #     valid_idx = y.notna() & X_mcap.notna().all(axis=1)
-        
-    #     if valid_idx.sum() > 1:  # 至少需要2个样本
-    #         model_mcap = sm.OLS(y[valid_idx], X_mcap[valid_idx]).fit()
-    #         mcap_r2 = model_mcap.rsquared
-    #     else:
-    #         mcap_r2 = np.nan
+            # 标准化
+            self.data[neutralized_col] = (
+                (self.data[neutralized_col] - self.data[neutralized_col].mean()) 
+                / self.data[neutralized_col].std()
+            )
             
-    #     return max(ind_r2, mcap_r2) if not np.isnan([ind_r2, mcap_r2]).all() else np.nan
+            # 验证结果
+            valid_pct = self.data[neutralized_col].notna().mean() * 100
+            print(f"Success with accurancy: {valid_pct:.1f}%")
 
     def save_results(self):
-        """Save neutralized data"""
+        """保存结果"""
         self.data.to_parquet(self.output_path)
-        print(f"Saved neutralized data to {self.output_path}")
+        print(f"\nSaved result to -> {self.output_path}")
 
     def run(self):
-        """Execute full pipeline"""
-        self.load_data()
-        self.process_factors()
-        self.save_results()
+        """执行完整流程"""
+        try:
+            self.load_data()
+            self.process_all_factors()
+            self.save_results()
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            raise
 
-def execute(input_path,output_path):
-    neutralizer = FactorNeutralizer(input_path,output_path)
-    neutralizer.run()
+def execute(input_path: str, output_path: str, factor: str):
+    """执行中性化流程"""
+    print(f"\nStarting neutralization with factor: {factor}")
+    try:
+        neutralizer = RobustFactorNeutralizer(input_path, output_path, factor)
+        neutralizer.run()
+        print("Neutralization finished. Continuing...")
+    except Exception as e:
+        print(f"Error occured: {str(e)}")
+        raise

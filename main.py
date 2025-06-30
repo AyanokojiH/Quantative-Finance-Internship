@@ -31,7 +31,8 @@ class Pipe:
                 return_short=self.para['parameters']['return_short'],
                 return_med=self.para['parameters']['return_med'],
                 return_long=self.para['parameters']['return_long'],
-                trade_threshold=self.para['parameters']['trade_threshold']
+                trade_threshold=self.para['parameters']['trade_threshold'],
+                factor=self.para['factor']
             ),
             "LoadData"
         )
@@ -45,7 +46,8 @@ class Pipe:
             lambda:FactorStandardize.execute(
                 input_path = self.para['path']['Factor_Standardize']['input_path'],
                 output_path = self.para['path']['Factor_Standardize']['output_path'],
-                n = self.para['parameters']['standardized_n']
+                n = self.para['parameters']['standardized_n'],
+                factor=self.para['factor']
             ), 
             "FactorStandardize")
         print(f"-> Completed in {std_time:.2f} seconds")
@@ -57,6 +59,7 @@ class Pipe:
         neutral_time = self._time_it(lambda: FactorNeutralization.execute(
             input_path = self.para['path']['Factor_Neutralization']['input_path'],
             output_path = self.para['path']['Factor_Neutralization']['output_path'],
+            factor=self.para['factor']
         ), 
         "FactorNeutralization")
         print(f"-> Completed in {neutral_time:.2f} seconds")
@@ -70,7 +73,8 @@ class Pipe:
             short=self.para['parameters']['return_short'],
             med=self.para['parameters']['return_med'],
             long=self.para['parameters']['return_long'],
-            backtest = self.para['path']['Factor_Return']['backtest']
+            backtest = self.para['path']['Factor_Return']['backtest'],
+            factor=self.para['factor']
         ), "FactorReturn")
         print(f"-> Completed in {return_time:.2f} seconds")
         print("="*50, end='\n\n')
@@ -82,7 +86,8 @@ class Pipe:
             use_factor= self.para['path']['Factor_IC']['use_factor'],
             short=self.para['parameters']['return_short'],
             med=self.para['parameters']['return_med'],
-            long=self.para['parameters']['return_long']
+            long=self.para['parameters']['return_long'],
+            factor=self.para['path']['Factor_IC']['use_factor']
         ), "FactorIC")
         print(f"-> Completed in {ic_time:.2f} seconds")
         print("="*50, end='\n\n')
@@ -95,7 +100,8 @@ class Pipe:
             output_path= self.para['path']['Factor_Backtest']['output_dir'],
             short=self.para['parameters']['return_short'],
             med=self.para['parameters']['return_med'],
-            long=self.para['parameters']['return_long']
+            long=self.para['parameters']['return_long'],
+            factor=self.para['factor']
         ),"FactorBacktest")        
         self._print_timing_summary()
 

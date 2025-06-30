@@ -7,21 +7,18 @@ Also, the market can't be determinative to the return rate.
 
 """
 
-
-
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 
 class EnhancedBacktester:
-    def __init__(self, data_path, output_dir,short,med, long):
+    def __init__(self, data_path, output_dir,short,med, long, factor):
         self.data_path = Path(data_path)
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         self.data = None
-        self.factors = ['5D_RETURN.median_neutral', '5D_RETURN.rank_neutral']
+        self.factors = [f'{factor}.median_std_neutral', f'{factor}.rank_std_neutral']
         self.ret_cols = [f'NEXT_{short}DAY_RETURN_RATIO', f'NEXT_{med}DAY_RETURN_RATIO', f'NEXT_{long}DAY_RETURN_RATIO']
 
     def load_data(self):
@@ -30,7 +27,7 @@ class EnhancedBacktester:
             raise ValueError("Error in input data's form.")
         
         self.data['log_mcap'] = np.log(self.data['NEG_MARKET_VALUE'])
-        print(f"Loading finished. Timing range : {self.data.index.get_level_values('TRADE_DATE').min()} 至 "
+        print(f"Loading finished. Timing range : {self.data.index.get_level_values('TRADE_DATE').min()} TO "
               f"{self.data.index.get_level_values('TRADE_DATE').max()}")
 
     def create_decile_portfolios(self, factor_col):
@@ -89,10 +86,10 @@ class EnhancedBacktester:
                 
                 self.plot_cumulative_results(cum_mcap, cum_returns, factor)
             
-                cum_mcap.to_csv(self.output_dir/f'cum_mcap_{factor}.csv')
-                cum_returns.to_csv(self.output_dir/f'cum_returns_{factor}.csv')
+                # cum_mcap.to_csv(self.output_dir/f'cum_mcap_{factor}.csv')
+                # cum_returns.to_csv(self.output_dir/f'cum_returns_{factor}.csv')
                 
-                print(f"Successfully processed {factor}")
+                # print(f"Successfully processed {factor}")
                 
             except Exception as e:
                 print(f"Error processing {factor}: {str(e)}")
@@ -100,12 +97,13 @@ class EnhancedBacktester:
 
         print("\nAnalysis completed. Results saved to:", self.output_dir)
 
-def execute(input_path, output_path, short, med, long):
+def execute(input_path, output_path, short, med, long,factor):
     backtester = EnhancedBacktester(
         data_path= Path(input_path),
         output_dir=Path(output_path),
         short=short,
         med = med,
-        long= long
+        long= long,
+        factor=factor
     )
     backtester.run_analysis()

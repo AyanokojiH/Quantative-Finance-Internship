@@ -14,12 +14,12 @@ import pandas as pd
 import pyarrow.parquet as pq
 from pathlib import Path
 from tqdm import tqdm
-from utils import Factor_5D_reverse
+from utils import Factor_5D_reverse, Factor_Relative_Strength,Factor_Weighted_Strength_1m
 import time
 
 class StockDataProcessor:
     def __init__(self,basic_path, risk_path, output_path,
-                 return_short, return_med, return_long, trade_threshold):
+                 return_short, return_med, return_long, trade_threshold, factor):
         self.basic_path = Path(basic_path)
         self.risk_path = Path(risk_path)
         self.output_path = Path(output_path)
@@ -27,6 +27,7 @@ class StockDataProcessor:
         self.return_med = return_med
         self.return_long = return_long
         self.trade_threshold = trade_threshold
+        self.factor = factor
         self.merged_data = None
 
     def _load_single_stock_data(self, stock_code):
@@ -35,8 +36,8 @@ class StockDataProcessor:
             # Load basic data (TRADE_DATE is index)
             basic_file = self.basic_path / f"{stock_code}.parquet"
             basic_df = pd.read_parquet(basic_file, columns=[
-                'VWAP_PRICE_2', 'TRADE_DATE_COUNTER','MARKET_VALUE','TURNOVER_VOL','NEG_MARKET_VALUE',
-                'HIGHEST_PRICE_2', 'LOWEST_PRICE_2'
+                'VWAP_PRICE_2', 'TRADE_DATE_COUNTER','MARKET_VALUE','TURNOVER_VOL','NEG_MARKET_VALUE','TURNOVER_RATE'
+                ,'CLOSE_PRICE_2','HIGHEST_PRICE_2', 'LOWEST_PRICE_2'
             ],engine='pyarrow')
             basic_df = basic_df.rename_axis('TRADE_DATE').reset_index()
             
@@ -60,7 +61,7 @@ class StockDataProcessor:
             
             # Calculate returns
             merged = merged.sort_values('TRADE_DATE')
-            merged['5D_RETURN'] = Factor_5D_reverse.calculate_5d_return(merged)
+            merged[f'{self.factor}'] = Factor_5D_reverse.calculate_5d_reverse(merged)
 
             merged[f'NEXT_{self.return_short}DAY_RETURN_RATIO'] = merged.groupby('STOCK_CODE')['VWAP_PRICE_2'].transform(
                 lambda x: (x.shift(-(1+self.return_short)) - x.shift(-1)) / x.shift(-1)
@@ -72,7 +73,7 @@ class StockDataProcessor:
                 lambda x: (x.shift(-(1+self.return_long)) - x.shift(-1)) / x.shift(-1)
             )
             
-            return merged.dropna(subset=['5D_RETURN', f'NEXT_{self.return_short}DAY_RETURN_RATIO', 
+            return merged.dropna(subset=[f'{self.factor}', f'NEXT_{self.return_short}DAY_RETURN_RATIO', 
                                        f'NEXT_{self.return_med}DAY_RETURN_RATIO', f'NEXT_{self.return_long}DAY_RETURN_RATIO'])
         
         except Exception as e:
@@ -101,8 +102,8 @@ class StockDataProcessor:
         self.output_path.mkdir(exist_ok=True)
         self.merged_data.to_parquet(self.output_path / "all_stocks_processed.parquet")
 
-def execute(basic_path,risk_path,output_path,return_short,return_med,return_long,trade_threshold):
-    processor = StockDataProcessor(basic_path,risk_path,output_path,return_short,return_med,return_long,trade_threshold)
+def execute(basic_path,risk_path,output_path,return_short,return_med,return_long,trade_threshold,factor):
+    processor = StockDataProcessor(basic_path,risk_path,output_path,return_short,return_med,return_long,trade_threshold,factor=factor)
     result = processor.process_all_stocks()
     processor.save_results()
     print(f"\nProcessing completed. Final data shape: {result.shape}")

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-def calculate_5d_return(df: pd.DataFrame, 
+def calculate_5d_reverse(df: pd.DataFrame, 
                        price_col: str = 'VWAP_PRICE_2',
                        group_col: str = 'STOCK_CODE') -> pd.Series:
     prices = df[price_col].values
@@ -16,9 +16,9 @@ def calculate_5d_return(df: pd.DataFrame,
     for start, end in zip(group_starts, group_ends):
         if end - start > 5: 
             group_prices = prices[start:end]
-            returns[start+5:end] = (group_prices[5:] / group_prices[:-5]) - 1
+            returns[start+5:end] =(group_prices[:-5] / group_prices[5:]) -1
     
-    return pd.Series(returns, index=df.index, name='5D_RETURN')
+    return pd.Series(returns, index=df.index, name='5D_REVERSE')
 
 
 # def numpy_matrix_method(df):
